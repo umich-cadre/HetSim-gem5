@@ -42,12 +42,21 @@ Various target-specific parameters, such as number of PEs, depths of queues, num
 After you adjust this file, run `populate_init_queues.py` from `scripts/` that will generate C++ code to create software queues based on the connections specified in `spec.json`. Following this, you would need to rebuild gem5, using `scripts/build_gem5.sh`.
 
 ## Run gem5 Simulation
-First let's compile and run the `workq_mutex` example application on the target gem5 mode, i.e. on _simulation_. This requires us to have already built the simulation library. You can double-check this by verifying that the file `example/sim/build/libhetsim_prim.a` exists.
+We first build the m5op library to use with gem5 (one-time).
 ```bash
+cd gem5/util/m5
+scons
+```
+> If you hit an error due to missing cross-compilers for ISAs that you do not need, either download the missing cross-compilers or as a temporary workaround remove the corresponding files in `gem5/util/m5/src`, _e.g._ to remove the m5op library for SPARC, delete `gem5/util/m5/src/sparc`.
+
+Next, let us compile and run the `workq_mutex` example application on gem5.
+```bash
+# build application
 cd example/app
 mkdir build && cd build
 rm -f CMakeCache.txt # run this if previously ran cmake with different MODE
 MODE=SIM cmake .. && make
+# run gem5 simulation
 cd ../../../scripts
 MODE=SIM APP=workq_mutex ./run-gem5.sh
 ```
