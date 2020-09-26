@@ -1,0 +1,83 @@
+cmake_minimum_required(VERSION 3.0)
+project(HetSim-Apps)
+
+# This CMakeLists must not be invoked without setting MODE.
+if(NOT DEFINED ENV{MODE})
+    message(FATAL_ERROR "Set MODE to either SIM or EMU and try again")
+endif()
+
+# Set path to util file based on whether we're in emulation or simulation mode.
+message("MODE set to $ENV{MODE}")
+if("$ENV{MODE}" STREQUAL "SIM")
+    set(util_path ../sim/inc)
+    set(CMAKE_C_COMPILER "arm-linux-gnueabihf-gcc")
+    set(CMAKE_CXX_COMPILER "arm-linux-gnueabihf-g++")
+    # Set Arm flags for simulation mode.
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfloat-abi=hard -mfpu=vfpv4-d16 -mlittle-endian -MMD -g0")
+elseif("$ENV{MODE}" STREQUAL "EMU")
+    list(APPEND CMAKE_PREFIX_PATH "../../emu/build")
+    set(util_path ../../emu/inc)
+    add_definitions(-DEMULATION)
+    set(CMAKE_C_COMPILER "gcc")
+    set(CMAKE_CXX_COMPILER "g++")
+    find_library(HETSIM_PRIM hetsim_prim)
+elseif(("$ENV{MODE}" STREQUAL "EMU_MANUAL_TRACE") OR ("$ENV{MODE}" STREQUAL "EMU_MANUAL_TRACE"))
+    list(APPEND CMAKE_PREFIX_PATH "../../emu/build" "../../tracer/build/runtime/default")
+    set(util_path ../../emu/inc)
+    set(tracer_path ../../tracer/runtime/default)
+    add_definitions(-DEMULATION)
+    if("$ENV{MODE}" STREQUAL "EMU_MANUAL_TRACE")
+        add_definitions(-DMANUAL_TRACING)
+        set(CMAKE_C_COMPILER "gcc")
+        set(CMAKE_CXX_COMPILER "g++")
+    elseif("$ENV{MODE}" STREQUAL "EMU_AUTO_TRACE")
+        add_definitions(-DAUTO_TRACING)
+        set(CMAKE_C_COMPILER "clang")
+        set(CMAKE_CXX_COMPILER "clang++")
+    endif()
+    find_library(HETSIM_TRACER hetsim_default_rt)
+    find_library(HETSIM_PRIM hetsim_prim)
+else()
+    message( FATAL_ERROR "MODE must be set to one of SIM, EMU, EMU_MANUAL_TRACE or EMU_AUTO_TRACE" )
+endif()
+
+# Set cross-compilers and compilation flags.
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -MMD -MP -O2 -g")
+if("$ENV{MODE}" STREQUAL "EMU_AUTO_TRACE")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -load -Xclang ${CMAKE_SOURCE_DIR}/../../tracer/build/compiler-pass/LLVMHetsim.so")
+else()
+endif()
+
+if("$ENV{MODE}" STREQUAL "SIM")
+    # Build m5threads library locally.
+    add_library(m5threads STATIC ../../m5threads/pthread.c)
+    target_include_directories( m5threads PUBLIC ../../m5threads )
+
+    # We'd like to build m5threads with -mthumb, but the code doesn't support it.
+    # Using -marm works equivalently.
+    set_target_properties(m5threads PROPERTIES COMPILE_FLAGS "-marm -march=armv7-a")
+    install(TARGETS m5threads DESTINATION build)
+endif()
+
+# Build all user applications one-by-one.
+file( GLOB APP_SOURCES src/*.cpp )
+foreach( testsourcefile ${APP_SOURCES} )
+    string( REPLACE ".cpp" "" testname ${testsourcefile} )
+    string( REGEX REPLACE ".*/" "" testname ${testname} )
+    message("Processing application: ${testname}")
+    add_executable( ${testname} ${testsourcefile} )
+    target_include_directories( ${testname} PRIVATE inc ../model ${util_path} ../../gem5/include)
+    if("$ENV{MODE}" STREQUAL "SIM")
+        set_target_properties(${testname} PROPERTIES COMPILE_FLAGS "-mthumb -march=armv7 -save-temps")
+        target_link_libraries( ${testname} PRIVATE ${HETSIM_PRIM} m5threads -static )
+        # include precompiled m5ops
+        find_library(M5OP NAMES m5 HINTS "../../gem5/util/m5/build/thumb/out")
+        target_link_libraries( ${testname} PRIVATE ${M5OP})
+    elseif("$ENV{MODE}" STREQUAL "EMU")
+        target_link_libraries( ${testname} PRIVATE ${HETSIM_PRIM} -Wl,--whole-archive -lpthread -Wl,--no-whole-archive )
+    elseif(("$ENV{MODE}" STREQUAL "EMU_MANUAL_TRACE") OR ("$ENV{MODE}" STREQUAL "EMU_AUTO_TRACE"))
+        target_include_directories( ${testname} PRIVATE ${tracer_path})
+        target_link_libraries( ${testname} PRIVATE ${HETSIM_PRIM} ${HETSIM_TRACER} -Wl,--whole-archive -lpthread -Wl,--no-whole-archive )
+    endif()
+endforeach( testsourcefile ${APP_SOURCES} )

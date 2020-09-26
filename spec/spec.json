@@ -1,0 +1,136 @@
+{
+    "queues": {
+        "set1": {
+            "source": [0],
+            "sink": [1, 2, 3, 4, 5, 6, 7, 8]
+        }
+    },
+    "addr_space": {
+        "set1": {
+            "start": "0x0000000000000000",
+            "end": "0xFFFFFFFFFFFFFFFF"
+        }
+    },
+    "llvm_instr": ["Add","FAdd","Mul","FMul","Br","FCmp","ICmp"],
+    "pe": {
+        "mgr": {
+            "id": [0],
+            "__push(unsigned int, unsigned long)" : {
+                "token": "PUSH #0",
+                "cycles": 1,
+                "enable": 1
+            },
+            "__push_mmap(unsigned int, unsigned long)" : {
+                "token": "PUSHMMAP #0",
+                "enable": 0
+            },
+            "__barrier_init(pthread_barrier_t*, unsigned int)": {
+                "token": "BARINIT #0 #1",
+                "cycles": 10,
+                "enable": 1
+            },
+            "__barrier_wait(pthread_barrier_t*)": {
+                "token": "BARWAIT #0",
+                "cycles": 10,
+                "load_penalty" : 1,
+                "store_penalty" : 1,
+                "enable": 1
+            },
+            "__mutex_init(pthread_mutex_t*)": {
+                "token": "MTXINIT #0",
+                "cycles": 10,
+                "enable": 1
+            },
+            "__mutex_lock(pthread_mutex_t*)": {
+                "token": "MTXLOCK #0",
+                "load_penalty" : 4,
+                "store_penalty" : 1,
+                "cycles": 10,
+                "enable": 1
+            },
+            "__mutex_unlock(pthread_mutex_t*)": {
+                "token": "MTXUNLOCK #0",
+                "store_penalty" : 1,
+                "cycles": 10,
+                "enable": 1
+            },
+            "__sleep()": {
+                "token": "SLEEP",
+                "cycles": 0,
+                "enable": 1
+            },
+            "__wake(unsigned int)": {
+                "token": "WAKE #0",
+                "cycles": 0,
+                "enable": 1
+            },
+            "__dump_stats()": {
+                "token": "DMP",
+                "cycles": 0,
+                "enable": 1
+            },
+            "__dump_reset_stats()": {
+                "token": "DMPRST",
+                "cycles": 0,
+                "enable": 1
+            },
+            "__reset_stats()": {
+                "token": "RST",
+                "cycles": 0,
+                "enable": 1
+            }
+        },
+        "wrkr": {
+            "id": [1, 2, 3, 4, 5, 6, 7, 8],
+            "__pop(unsigned int)": {
+                "token": "POP #0",
+                "cycles": 1,
+                "enable": 1
+            },
+            "__pop_mmap(unsigned int)": {
+                "token": "POPMMAP #0",
+                "enable": 0
+            },
+            "__barrier_init(pthread_barrier_t*, unsigned int)": {
+                "token": "BARINIT #0 #1",
+                "cycles": 10,
+                "enable": 1
+            },
+            "__barrier_wait(pthread_barrier_t*)": {
+                "token": "BARWAIT #0",
+                "cycles": 10,
+                "load_penalty" : 1,
+                "store_penalty" : 1,
+                "enable": 1
+            },
+            "__mutex_init(pthread_mutex_t*)": {
+                "token": "MTXINIT #0",
+                "cycles": 10,
+                "enable": 1
+            },
+            "__mutex_lock(pthread_mutex_t*)": {
+                "token": "MTXLOCK #0",
+                "load_penalty" : 4,
+                "store_penalty" : 1,
+                "cycles": 10,
+                "enable": 1
+            },
+            "__mutex_unlock(pthread_mutex_t*)": {
+                "token": "MTXUNLOCK #0",
+                "store_penalty" : 1,
+                "cycles": 10,
+                "enable": 1
+            },
+            "__sleep()": {
+                "token": "SLEEP",
+                "cycles": 0,
+                "enable": 1
+            },
+            "__wake(unsigned int)": {
+                "token": "WAKE #0",
+                "cycles": 0,
+                "enable": 1
+            }
+        }
+    }
+}
