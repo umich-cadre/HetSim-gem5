@@ -86,20 +86,21 @@ At this stage, verify that the results are functionally correct.
 # generate plugin
 cd scripts && python generate_model.py ../spec/spec.json
 # build tracing library
-cd tracer
+cd ../tracer
 mkdir build && cd build
 cmake ..
 make
 # build user app
-cd ../example/app
-mkdir build && cd build
-mkdir traces
+cd ../../example/app
+mkdir -f build && cd build
+mkdir -f traces
 rm -f CMakeCache.txt # run this if previously ran cmake with different MODE
 MODE=EMU_AUTO_TRACE cmake ..
 make
 # trace generation
 ./workq_mutex # traces are generated in example/app/build/traces
-# trace replay
+# trace replay using gem5
+cd ../../../scripts
 MODE=EMU_TRACE APP=workq_mutex ./run-gem5.sh
 ```
 ### Annotating using Manual Tracing

@@ -663,8 +663,9 @@ bool HetsimPass::runOnModule(llvm::Module &M) {
 
     for (auto S : stalls) {
         if (auto *func = M.getFunction(HetsimRuntime::EmitIncrementStalls)) {
-            llvm::SmallVector<llvm::Value *, 1> args;
+            llvm::SmallVector<llvm::Value *, 2> args;
             args.push_back(llvm::ConstantInt::get(llvm::IntegerType::get(M.getContext(), 32), S.stall_count)); // number of stalls preceding this load
+            args.push_back(llvm::ConstantInt::get(llvm::IntegerType::get(M.getContext(), 32), 0));
             auto *call = llvm::CallInst::Create(llvm::cast<llvm::Function>(func), args, "", S.instr);
         }
     }
