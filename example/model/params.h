@@ -32,6 +32,7 @@
  *  @author Subhankar Pal
  */
 #define NUM_WORKER              8
+#define NUM_PE                  (NUM_WORKER + 1)
 #define WQ_DEPTH                4
 #define MAX_OUTSTANDING_REQS    1
 #define CLOCK_SPEED_GHZ         1

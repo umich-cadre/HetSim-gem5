@@ -60,9 +60,10 @@ class q_intfc_t {
 };
 void __register_core_id(unsigned);
 
+void __init(unsigned long num_pe, unsigned long wq_depth);
+void __teardown(void);
+
 // work queue interface
-void __init_queues(long unsigned int depth);
-void __teardown_queues(void);
 void __push(unsigned int, uint64_t data);
 void __push_mmap(unsigned int, uint64_t data);
 uint64_t __pop(unsigned int);
@@ -76,6 +77,10 @@ void __barrier_wait(pthread_barrier_t *bar);
 void __mutex_init(pthread_mutex_t *lock);
 void __mutex_lock(pthread_mutex_t *lock);
 void __mutex_unlock(pthread_mutex_t *lock);
+
+// sleep-wake primitives
+void __sleep();
+void __wake(unsigned pe_id);
 
 // emulation lib treats these as no-ops
 void __reset_stats();

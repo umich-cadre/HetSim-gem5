@@ -35,14 +35,27 @@ std::mutex m;
 std::map<std::thread::id, unsigned> tid_to_core_id_map;
 // STL map of PE/core ID to pointer to queue intfc object
 std::map<std::pair<unsigned, unsigned>, q_intfc_t *> queues;
+// Vector of pointers to per-PE mutex and cv objects
+std::vector<std::condition_variable *> cvs;
+std::vector<std::mutex *> mutexes;
+// Vector of sleep_cntr to implement sleep/wake
+std::vector<int> sleep_cntr;
 // record own user-specified PE/core ID
 void __register_core_id(unsigned core_id) {
   m.lock();
     tid_to_core_id_map.insert(std::make_pair(std::this_thread::get_id(), core_id));
   m.unlock();
 }
-// work queue interface
-void __init_queues(long unsigned int depth) {
+void __init(unsigned long num_pe, unsigned long wq_depth) {
+    // create one cv and mutex object per PE
+    for (unsigned i = 0; i < num_pe; ++i) {
+        sleep_cntr.push_back(0);
+        cvs.push_back(new std::condition_variable);
+        mutexes.push_back(new std::mutex);
+    }
+
+    // init queues
+    unsigned depth = wq_depth;
     // queues.at(std::make_pair(source, sink))(new q_intfc_t(depth));
     // begin generated code for init_queues
     queues.insert(std::make_pair(std::make_pair(0, 1), new q_intfc_t(depth)));
@@ -55,26 +68,28 @@ void __init_queues(long unsigned int depth) {
     queues.insert(std::make_pair(std::make_pair(0, 8), new q_intfc_t(depth)));
     // end generated code for init_queues
 }
-void __teardown_queues(void) {
-    for (auto &e : queues) {
-        delete e.second;
-    }
+void __teardown(void) {
+    // teardown per PE cvs and mutexes
+    for (auto &e : cvs) { delete e; }
+    cvs.clear();
+    for (auto &e : mutexes) { delete e; }
+    mutexes.clear();
+
+    // teardown queues
+    for (auto &e : queues) { delete e.second; }
     queues.clear();
+
+    // teardown tid_to_core_id_map
+    tid_to_core_id_map.clear();
 }
+// work queue interface
 void __push(unsigned sink, uint64_t data) {
     __push_mmap(sink, data);
 }
 void __push_mmap(unsigned sink, uint64_t data) {
     unsigned source;
     q_intfc_t *queue;
-    try {
-        source = tid_to_core_id_map.at(std::this_thread::get_id());
-    } catch (const std::out_of_range &e) {
-        printf("%s(): exception occured \"%s\", aborting. Perhaps your threads didn't call "
-               "register_core_id()?\n",
-               __FUNCTION__, e.what());
-        exit(1);
-    }
+    source = get_id();
     try {
         queue = queues.at(std::make_pair(source, sink));
     } catch (const std::out_of_range &e) {
@@ -104,14 +119,7 @@ uint64_t __pop(unsigned source) {
 uint64_t __pop_mmap(unsigned source) {
     unsigned sink;
     q_intfc_t *queue;
-    try {
-        sink = tid_to_core_id_map.at(std::this_thread::get_id());
-    } catch (const std::out_of_range &e) {
-        printf("%s(): exception occured \"%s\", aborting. Perhaps your threads didn't call "
-               "register_core_id()?\n",
-               __FUNCTION__, e.what());
-        exit(1);
-    }
+    sink = get_id();
     try {
         queue = queues.at(std::make_pair(source, sink));
     } catch (const std::out_of_range &e) {
@@ -149,6 +157,27 @@ void __mutex_init(pthread_mutex_t *lock) { pthread_mutex_init(lock, NULL); }
 void __mutex_lock(pthread_mutex_t *lock) { pthread_mutex_lock(lock); }
 void __mutex_unlock(pthread_mutex_t *lock) { pthread_mutex_unlock(lock); }
 
+// sleep-wake
+void __sleep() {
+    // get self PE-ID
+    unsigned pe_id = get_id();
+
+    // increment sleep_cntr for self and wait on CV
+    // if it is <= 0 it means that someone has already called wake on it
+    std::mutex *m = mutexes.at(pe_id);
+    std::unique_lock<std::mutex> lock(*m);
+    ++sleep_cntr.at(pe_id);
+    while(sleep_cntr.at(pe_id) > 0) {
+        cvs.at(pe_id)->wait(lock);
+    }
+}
+void __wake(unsigned pe_id) {
+    // set sleep_cntr to false for target PE and notify
+    std::unique_lock<std::mutex> lock(*mutexes.at(pe_id));
+    --sleep_cntr.at(pe_id);
+    cvs.at(pe_id)->notify_one();
+}
+
 // m5 op wrapper primitives
 void __reset_stats() {}
 void __dump_stats() {}
@@ -161,12 +190,12 @@ int get_id() {
   int id;
 
   try {
-    id = tid_to_core_id_map.at(std::this_thread::get_id());
+      id = tid_to_core_id_map.at(std::this_thread::get_id());
   } catch (const std::out_of_range &e) {
-    printf("%s(): exception occured \"%s\", aborting. Perhaps your threads didn't call "
-	   "register_core_id()?\n",
-	   __FUNCTION__, e.what());
-    exit(1);
+      printf("%s(): exception occured \"%s\", aborting. Perhaps your threads didn't call "
+	         "register_core_id()?\n",
+	             __FUNCTION__, e.what());
+      exit(1);
   }
 
   m.unlock();

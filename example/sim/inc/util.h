@@ -26,13 +26,13 @@ extern
 "C"
 #endif // __cplusplus
 __INLINE void
-__init_queues(unsigned depth) { }
+__init(unsigned long num_pe, unsigned long wq_depth) { }
 extern
 #ifdef __cplusplus
 "C"
 #endif // __cplusplus
 __INLINE void
-__teardown_queues(void) { }
+__teardown(void) { }
 /**
  * @brief Pushes an item to the back of the work queue indexed by PE ID.
  * @param pe_id ID of the PE that this work queue is connected to.
