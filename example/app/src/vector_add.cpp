@@ -44,7 +44,7 @@ void *work(void *arg) { // manager "spawns" worker threads with tid=1,2,3...
 
 int main() {
     printf("== Vector Add Test with N = %u, NUM_WORKER = %u\n", N, NUM_WORKER);
-    __init_queues(WQ_DEPTH);
+    __init(NUM_PE, WQ_DEPTH);
     __register_core_id(0); // manager is assigned core-id 0
 
     // main memory allocation
@@ -149,7 +149,7 @@ int main() {
     munmap(ram, RAM_SIZE_BYTES);
     delete[] workers;
     delete[] tids;
-    __teardown_queues();
+    __teardown();
 
     if (pass)
         printf("== Test Passed ==\n");
