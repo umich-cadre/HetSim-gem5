@@ -1224,7 +1224,7 @@ int emit_stall() {
         print("""
 void __close_trace_log(unsigned tid) {
   log_mutex.lock();
-  if (trace_bools.find(std::this_thread::get_id()) == trace_bools.end()) {
+  if (trace_bools.find(std::this_thread::get_id()) != trace_bools.end()) {
     trace_bools[std::this_thread::get_id()] = false;
   }
 
