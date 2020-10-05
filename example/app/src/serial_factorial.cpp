@@ -47,7 +47,7 @@
 
 int main() {
     printf("Mgr starting up.\n");
-    __init_queues(WQ_DEPTH);
+    __init(NUM_PE, WQ_DEPTH);
     __register_core_id(0);
 #if defined(MANUAL_TRACING) || defined(AUTO_TRACING)
     __open_trace_log(0);
@@ -91,7 +91,7 @@ int main() {
 #ifdef EMULATION
     munmap(dspm, SPM_SIZE_BYTES);
 #endif // EMULATION
-    __teardown_queues();
+    __teardown();
 #if defined(MANUAL_TRACING) || defined(AUTO_TRACING)
     __close_trace_log(0);
 #endif // MANUAL_TRACING || AUTO_TRACING

@@ -67,10 +67,6 @@ TRE::initQueues(unsigned long depth)
     queues.insert(std::make_pair(std::make_pair(0, 2), new TREQueue(depth)));
     queues.insert(std::make_pair(std::make_pair(0, 3), new TREQueue(depth)));
     queues.insert(std::make_pair(std::make_pair(0, 4), new TREQueue(depth)));
-    queues.insert(std::make_pair(std::make_pair(0, 5), new TREQueue(depth)));
-    queues.insert(std::make_pair(std::make_pair(0, 6), new TREQueue(depth)));
-    queues.insert(std::make_pair(std::make_pair(0, 7), new TREQueue(depth)));
-    queues.insert(std::make_pair(std::make_pair(0, 8), new TREQueue(depth)));
     // end generated code for init_queues
 }
 

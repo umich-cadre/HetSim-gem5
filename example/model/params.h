@@ -31,14 +31,15 @@
  *         HetSim primitives
  *  @author Subhankar Pal
  */
-#define NUM_WORKER             8
+#define NUM_WORKER             4
+#define NUM_PE                 (NUM_WORKER + 1)
 #define WQ_DEPTH               4
 #define MAX_OUTSTANDING_REQS   1
 #define CLOCK_SPEED_GHZ        1
 #define SPM_SIZE_BYTES         4096
 #define PAGE_SIZE_BYTES        4096
 
-#define WQ_POP_ADDR             0xE0100000
-#define WQ_PUSH_BASE_ADDR       0xE0100004
-#define SPM_BASE_ADDR           0xE0101000
-#define RAM_BASE_ADDR           0x40000000
+#define WQ_POP_ADDR            0xE0100000
+#define WQ_PUSH_BASE_ADDR      0xE0100004
+#define SPM_BASE_ADDR          0xE0101000
+#define RAM_BASE_ADDR          0x40000000

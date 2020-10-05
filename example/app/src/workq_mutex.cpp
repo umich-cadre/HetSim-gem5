@@ -89,16 +89,18 @@ void *func(void *args) {
 #endif // AUTO_TRACING || MANUAL_TRACING
 
 
-    // in EMU mode: use pthread barrier located in DSPM
-    // in TRE-SIM mode: use SLEEP-WAKE: wake up wrkr 2, that wakes up wrkr 3, and so on
+    // use SLEEP-WAKE: wake up wrkr 2, that wakes up wrkr 3, and so on
     pthread_barrier_t *gbar = my_args->gbar;
 #ifdef MANUAL_TRACING
     _C_wrkr__sleep();
 #endif // MANUAL_TRACING
-    __barrier_wait(gbar);
-#ifdef MANUAL_TRACING
-    if (tid != NUM_WORKER) _C_wrkr__wake(tid + 1);
-#endif // MANUAL_TRACING
+    __sleep();
+    if (tid != NUM_WORKER) {
+    #ifdef MANUAL_TRACING
+        _C_wrkr__wake(tid + 1);
+    #endif // MANUAL_TRACING
+        __wake(tid + 1);
+    }
 
     // retrieve variables from work queue
 #ifdef MANUAL_TRACING
@@ -153,7 +155,7 @@ void *func(void *args) {
 
 int main(int argc, const char *argv[]) {
     printf("== Running Test with %u Workers ==\n", NUM_WORKER);
-    __init_queues(WQ_DEPTH);
+    __init(NUM_PE, WQ_DEPTH);
     __register_core_id(0);
 #if defined(AUTO_TRACING) || defined(MANUAL_TRACING)
     __open_trace_log(0);
@@ -211,16 +213,14 @@ int main(int argc, const char *argv[]) {
         if (pthread_create(threads + tid, NULL, func, &t_args[tid]) != 0) {
             break;
         }
-        // printf("Spawned %u threads.\n", n_worker_threads);
     }
+    // printf("Spawned %u threads.\n", NUM_WORKER);
 
-    // in EMU mode: synchronize using barrier in DSPM
-    // in TRE-SIM mode: synchronize using SLEEP-WAKE
-    //     after synchronization, push through the work queues
+    // synchronize using SLEEP-WAKE; after synchronization, push through the work queues
 #ifdef MANUAL_TRACING
     _C_mgr__wake(1); // wake up wrkr 1, that wakes up wrkr 2, and so on
 #endif // MANUAL_TRACING
-    __barrier_wait(global_bar);
+    __wake(1);
 
     for (int tid = 0; tid < NUM_WORKER; ++tid) {
         // communicate nsteps, pointer to the shared variable, and pointer to the mutex object
@@ -294,7 +294,7 @@ int main(int argc, const char *argv[]) {
 #endif // EMULATION
     delete[] threads;
     delete[] t_args;
-    __teardown_queues();
+    __teardown();
 
 #if defined(AUTO_TRACING) || defined(MANUAL_TRACING)
     __close_trace_log(0);
